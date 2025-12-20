@@ -1,0 +1,8 @@
+pyproject.toml
+setup.cfg
+src/oxford_colors/__init__.py
+src/oxford_colors/oxford_colors.py
+src/oxford_colors.egg-info/PKG-INFO
+src/oxford_colors.egg-info/SOURCES.txt
+src/oxford_colors.egg-info/dependency_links.txt
+src/oxford_colors.egg-info/top_level.txt

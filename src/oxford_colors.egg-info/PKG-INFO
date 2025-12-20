@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: oxford_colors
+Version: 0.1.0
+Summary: A color pallete for matplotlib derived from the Oxford color themes
+Author: Hakam Atassi
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
