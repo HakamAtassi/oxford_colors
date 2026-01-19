@@ -23,8 +23,11 @@ plt.rcParams['axes.prop_cycle'] = mpl_cycler(["oxford_blue","oxford_peach"])
 """
 
 from __future__ import annotations
-from typing import Tuple, Dict, List, Optional, Iterable
+from typing import Tuple, Dict, List, Optional, Iterable, Any, ContextManager
 from dataclasses import dataclass
+from contextlib import contextmanager
+import matplotlib as mpl
+from matplotlib import pyplot as plt
 
 __all__ = [
     "OXFORD_COLORS",
@@ -37,6 +40,7 @@ __all__ = [
     "get_names",
     "mpl_palette",
     "mpl_cycler",
+    "oxford_style",
 ]
 
 @dataclass(frozen=True)
@@ -194,6 +198,42 @@ def mpl_cycler(names: Optional[Iterable[str]] = None):
 
 # module-level convenience: common palette
 DEFAULT_PALETTE = mpl_palette()  # primary + secondary order
+
+
+@contextmanager
+def oxford_style(
+    colors: Optional[Iterable[str]] = None
+) -> ContextManager[None]:
+    """
+    Context manager for temporarily setting Oxford color styles in matplotlib.
+    
+    Args:
+        colors: Iterable of color names to use for the color cycle.
+                If None, uses the default Oxford palette.
+    
+    Example:
+        with oxford_style(colors=["oxford_blue", "oxford_pink", "oxford_green"]):
+            fig, ax = plt.subplots()
+            ax.plot([1, 2, 3], [1, 4, 9])  # Uses Oxford colors
+        # Outside the context, colors return to previous settings
+    """
+    # Store current rcParams
+    old_rc = mpl.rcParams.copy()
+    
+    try:
+        # Set the color cycle
+        if colors is not None:
+            plt.rc('axes', prop_cycle=mpl_cycler(colors))
+        else:
+            plt.rc('axes', prop_cycle=mpl_cycler())
+            
+        yield
+        
+    finally:
+        # Restore original settings
+        mpl.rcParams.clear()
+        mpl.rcParams.update(old_rc)
+
 
 # End of file
 
