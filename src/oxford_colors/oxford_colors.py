@@ -1,11 +1,11 @@
 """
-oxford_palette.py
+oxford_colors.py
 A minimal library that stores Oxford University theme colours and small helpers
 for plotting.
 
 Usage examples
 --------------
-from oxford_palette import OXFORD_COLORS, hex, rgb, mpl_palette, mpl_cycler
+from oxford_colors import OXFORD_COLORS, hex, rgb, mpl_palette, mpl_cycler, oxford_style
 
 # get hex:
 hex("oxford_blue")          # -> '#002147'
@@ -18,8 +18,17 @@ mpl_palette(["oxford_blue", "oxford_peach", "oxford_mauve"])
 
 # create a matplotlib cycler:
 from matplotlib import pyplot as plt
-from matplotlib import cycler
-plt.rcParams['axes.prop_cycle'] = mpl_cycler(["oxford_blue","oxford_peach"])
+plt.rcParams['axes.prop_cycle'] = mpl_cycler(["oxford_blue", "oxford_peach"])
+
+# apply Oxford style as a context manager:
+with oxford_style():
+    plt.plot([1, 2, 3], [1, 4, 9])   # uses default Oxford palette
+
+with oxford_style(["oxford_blue", "oxford_pink"]):
+    plt.plot([1, 2, 3], [1, 4, 9])   # uses specified colors
+
+# look up a hex color directly:
+oxford_style["oxford_blue"]           # -> '#002147'
 """
 
 from __future__ import annotations
@@ -40,7 +49,9 @@ __all__ = [
     "get_names",
     "mpl_palette",
     "mpl_cycler",
+    "set_plt_colors",
     "oxford_style",
+    "DEFAULT_PALETTE",
 ]
 
 @dataclass(frozen=True)
@@ -161,11 +172,59 @@ def get_names(group: Optional[str] = None) -> List[str]:
 def mpl_palette(names: Optional[Iterable[str]] = None) -> List[str]:
     """
     Return a list of hex colour codes suitable for use with matplotlib/seaborn.
-    If `names` is None, returns the primary + secondary palette in order.
+    If `names` is None, returns colors ordered by "Oxford-ness" - 
+    most iconic Oxford colors first, avoiding whites/near-whites.
     `names` may be an iterable of colour keys or friendly names.
     """
     if names is None:
-        names = COLORS_BY_GROUP["primary"] + COLORS_BY_GROUP["secondary"]
+        # Ordered by "Oxford-ness" - most iconic colors first
+        # Avoiding white/near-white colors in default palette
+        names = [
+            # Primary Oxford colors (most iconic)
+            "oxford_blue",           # The signature Oxford blue
+            "oxford_pink",           # Distinctive Oxford pink
+            "oxford_plum",           # Deep Oxford plum
+            "oxford_yellow_ochre",    # Traditional Oxford yellow
+            
+            # Strong secondary colors
+            "oxford_ccb_red",        # Oxford Red (official)
+            "oxford_green",          # Oxford green
+            "oxford_royal_blue",     # Royal blue variant
+            "oxford_orange",         # Vibrant orange
+            "oxford_viridian",       # Deep green-blue
+            
+            # Supporting colors
+            "oxford_mauve",          # Soft purple
+            "oxford_coral",          # Warm coral
+            "oxford_aqua",           # Bright aqua
+            "oxford_lavender",       # Light purple
+            "oxford_sky_blue",        # Sky blue
+            "oxford_lime_green",      # Bright green
+            "oxford_cerulean_blue",   # Bright blue
+            "oxford_vivid_green",     # Vivid green
+            "oxford_yellow",          # Lemon yellow
+            
+            # Muted tones
+            "oxford_sienna",          # Earthy sienna
+            "oxford_dusk",            # Dusky rose
+            "oxford_sage_green",      # Sage green
+            "oxford_lilac",           # Soft lilac
+            "oxford_peach",           # Soft peach
+            "oxford_potters_pink",    # Potter's pink
+            
+            # Dark neutrals
+            "oxford_charcoal",        # Dark charcoal
+            "oxford_umber",           # Brownish umber
+            
+            # Medium neutrals
+            "oxford_ash_grey",        # Medium grey
+            "oxford_ocean_grey",      # Ocean grey
+            
+            # Metallics
+            "oxford_gold",            # Gold
+            "oxford_silver",          # Silver
+        ]
+        
     hexes = []
     for n in names:
         try:
@@ -197,43 +256,50 @@ def mpl_cycler(names: Optional[Iterable[str]] = None):
 
 
 # module-level convenience: common palette
-DEFAULT_PALETTE = mpl_palette()  # primary + secondary order
+DEFAULT_PALETTE = mpl_palette()  # all available colors for maximum variety
 
 
-@contextmanager
-def oxford_style(
-    colors: Optional[Iterable[str]] = None
-) -> ContextManager[None]:
+class _OxfordStyle:
     """
-    Context manager for temporarily setting Oxford color styles in matplotlib.
-    
-    Args:
-        colors: Iterable of color names to use for the color cycle.
-                If None, uses the default Oxford palette.
-    
-    Example:
-        with oxford_style(colors=["oxford_blue", "oxford_pink", "oxford_green"]):
-            fig, ax = plt.subplots()
-            ax.plot([1, 2, 3], [1, 4, 9])  # Uses Oxford colors
-        # Outside the context, colors return to previous settings
+    Oxford style helper — usable as a context manager or as a color lookup.
+
+    Context manager usage
+    ---------------------
+    Apply Oxford colors to a matplotlib block, then restore previous settings:
+
+        with oxford_style():
+            plt.plot(...)                   # default Oxford palette
+
+        with oxford_style(["oxford_blue", "oxford_pink"]):
+            plt.plot(...)                   # specified colors only
+
+    Subscript / dict-style lookup
+    -----------------------------
+    Retrieve the hex string for any named Oxford color:
+
+        oxford_style["oxford_blue"]         # -> '#002147'
+        oxford_style["oxford_pink"]         # -> '#E6007E'
     """
-    # Store current rcParams
-    old_rc = mpl.rcParams.copy()
-    
-    try:
-        # Set the color cycle
-        if colors is not None:
+
+    @contextmanager
+    def __call__(
+        self,
+        colors: Optional[Iterable[str]] = None,
+    ) -> ContextManager[None]:
+        old_rc = mpl.rcParams.copy()
+        try:
             plt.rc('axes', prop_cycle=mpl_cycler(colors))
-        else:
-            plt.rc('axes', prop_cycle=mpl_cycler())
-            
-        yield
-        
-    finally:
-        # Restore original settings
-        mpl.rcParams.clear()
-        mpl.rcParams.update(old_rc)
+            yield
+        finally:
+            mpl.rcParams.clear()
+            mpl.rcParams.update(old_rc)
 
+    def __getitem__(self, name: str) -> str:
+        """Return the hex string for a named Oxford color."""
+        return hex(name)
+
+
+oxford_style = _OxfordStyle()
 
 # End of file
 

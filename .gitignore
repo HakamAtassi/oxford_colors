@@ -1,3 +1,6 @@
-.vscode
+.vscode/
 src/oxford_colors.egg-info/
 dist/
+__pycache__/
+*.pyc
+.pytest_cache/

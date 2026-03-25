@@ -58,8 +58,6 @@ Repository = "https://github.com/HakamAtassi/oxford_colors.git"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-oxford_colors = ["examples/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
