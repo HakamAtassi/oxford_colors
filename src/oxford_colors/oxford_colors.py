@@ -35,6 +35,8 @@ from __future__ import annotations
 from typing import Tuple, Dict, List, Optional, Iterable, Any, ContextManager
 from dataclasses import dataclass
 from contextlib import contextmanager
+import os
+import pathlib
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 
@@ -287,12 +289,30 @@ class _OxfordStyle:
         colors: Optional[Iterable[str]] = None,
     ) -> ContextManager[None]:
         old_rc = mpl.rcParams.copy()
+        old_savefig = plt.savefig
+        backup_dir = os.environ.get("GRAPH_BACKUP")
+
+        if backup_dir:
+            backup_path = pathlib.Path(backup_dir)
+            backup_path.mkdir(parents=True, exist_ok=True)
+
+            def _savefig_with_backup(*args, **kwargs):
+                old_savefig(*args, **kwargs)
+                # Only back up when the destination is a file path (not a file object)
+                dest = args[0] if args else kwargs.get("fname")
+                if isinstance(dest, (str, pathlib.Path, os.PathLike)):
+                    filename = pathlib.Path(dest).name
+                    old_savefig(backup_path / filename, *args[1:], **kwargs)
+
+            plt.savefig = _savefig_with_backup
+
         try:
             plt.rc('axes', prop_cycle=mpl_cycler(colors))
             yield
         finally:
             mpl.rcParams.clear()
             mpl.rcParams.update(old_rc)
+            plt.savefig = old_savefig
 
     def __getitem__(self, name: str) -> str:
         """Return the hex string for a named Oxford color."""

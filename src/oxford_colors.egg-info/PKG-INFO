@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: oxford_colors
-Version: 1.1.0
+Version: 1.2.0
 Summary: Oxford University color palette for matplotlib
 Author-email: Hakam Atassi <hakam.atassi@example.com>
 Maintainer-email: Hakam Atassi <hakam.atassi@example.com>
@@ -55,7 +55,7 @@ pip install oxford_colors
 import matplotlib.pyplot as plt
 from oxford_colors import oxford_style
 
-# Use Oxford colors with the context manager
+# Apply Oxford colors with the context manager
 with oxford_style():
     fig, ax = plt.subplots()
     ax.plot([1, 2, 3], [1, 4, 9])
@@ -66,31 +66,162 @@ with oxford_style():
 ## Features
 
 - **Official Oxford Colors**: Complete palette including primary, secondary, neutral, and metallic colors
-- **Context Manager**: Temporary color styling that automatically reverts
+- **Context Manager**: Temporary color styling that automatically restores previous rcParams
 - **Custom Color Selection**: Choose specific colors from the palette
 - **Multiple Plot Types**: Works with line plots, bar charts, scatter plots, histograms, and more
 - **Matplotlib Integration**: Seamless integration with matplotlib's color cycle
+- **Color Metadata**: Access hex, RGB, CMYK, and Pantone values for every color
 
 ## Available Colors
 
-### Primary Colors
-- `oxford_blue` - The signature Oxford blue (#002147)
+### Primary
+| Key | Name | Hex |
+|-----|------|-----|
+| `oxford_blue` | Oxford blue | `#002147` |
 
-### Secondary Colors
-A comprehensive palette including:
-- `oxford_mauve`, `oxford_peach`, `oxford_potters_pink`
-- `oxford_dusk`, `oxford_lilac`, `oxford_sienna`
-- `oxford_ccb_red`, `oxford_plum`, `oxford_coral`
-- `oxford_lavender`, `oxford_orange`, `oxford_pink`
-- `oxford_green`, `oxford_ocean_grey`, `oxford_yellow_ochre`
-- And many more...
+### Secondary
+| Key | Name | Hex |
+|-----|------|-----|
+| `oxford_mauve` | Oxford mauve | `#776885` |
+| `oxford_peach` | Oxford peach | `#E08D79` |
+| `oxford_potters_pink` | Oxford potters pink | `#ED9390` |
+| `oxford_dusk` | Oxford dusk | `#C4A29E` |
+| `oxford_lilac` | Oxford lilac | `#D1BDD5` |
+| `oxford_sienna` | Oxford sienna | `#994636` |
+| `oxford_ccb_red` | Oxford Red | `#AA1A2D` |
+| `oxford_plum` | Oxford plum | `#7F055F` |
+| `oxford_coral` | Oxford coral | `#FE615A` |
+| `oxford_lavender` | Oxford lavender | `#D4CDF4` |
+| `oxford_orange` | Oxford orange | `#FB5607` |
+| `oxford_pink` | Oxford pink | `#E6007E` |
+| `oxford_green` | Oxford green | `#426A5A` |
+| `oxford_ocean_grey` | Oxford ocean grey | `#789E9E` |
+| `oxford_yellow_ochre` | Oxford yellow ochre | `#E2C044` |
+| `oxford_cool_grey` | Oxford cool grey | `#E4F0EF` |
+| `oxford_sky_blue` | Oxford sky blue | `#B9D6F2` |
+| `oxford_sage_green` | Oxford sage green | `#A0AF84` |
+| `oxford_viridian` | Oxford viridian | `#15616D` |
+| `oxford_royal_blue` | Oxford royal blue | `#1D42A6` |
+| `oxford_aqua` | Oxford aqua | `#00AAB4` |
+| `oxford_vivid_green` | Oxford vivid green | `#65E5AE` |
+| `oxford_lime_green` | Oxford lime green | `#95C11F` |
+| `oxford_cerulean_blue` | Oxford cerulean blue | `#49B6FF` |
+| `oxford_yellow` | Oxford lemon yellow | `#F7EF66` |
 
-### Neutral Colors
-- `oxford_charcoal`, `oxford_ash_grey`, `oxford_umber`
-- `oxford_stone_grey`, `oxford_shell_grey`, `oxford_off_white`
+### Neutrals
+| Key | Name | Hex |
+|-----|------|-----|
+| `oxford_charcoal` | Oxford charcoal | `#211D1C` |
+| `oxford_ash_grey` | Oxford ash grey | `#61615F` |
+| `oxford_umber` | Oxford umber | `#89827A` |
+| `oxford_stone_grey` | Oxford stone grey | `#D9D8D6` |
+| `oxford_shell_grey` | Oxford shell grey | `#F1EEE9` |
+| `oxford_off_white` | Oxford off white | `#F2F0F0` |
 
-### Metallic Colors
-- `oxford_gold`, `oxford_silver`
+### Metallic
+| Key | Name | Hex |
+|-----|------|-----|
+| `oxford_gold` | Oxford gold | `#C9A14B` |
+| `oxford_silver` | Oxford silver | `#BFC0C0` |
+
+## API Reference
+
+### Context Manager
+
+#### `oxford_style(colors=None)`
+
+Apply Oxford colors temporarily. Restores previous matplotlib rcParams on exit.
+
+```python
+from oxford_colors import oxford_style
+
+# Default Oxford palette
+with oxford_style():
+    plt.plot(...)
+
+# Specific colors only
+with oxford_style(colors=["oxford_blue", "oxford_pink", "oxford_green"]):
+    plt.plot(...)
+```
+
+Also supports subscript access to look up hex values:
+
+```python
+oxford_style["oxford_blue"]   # -> '#002147'
+oxford_style["oxford_pink"]   # -> '#E6007E'
+```
+
+#### Automatic Graph Backups
+
+If the `GRAPH_BACKUP` environment variable is set, any `plt.savefig()` call inside the context manager will automatically save a backup copy to that directory in addition to the original destination.
+
+```bash
+export GRAPH_BACKUP=~/graph_backups
+```
+
+```python
+with oxford_style():
+    plt.plot([1, 2, 3], [1, 4, 9])
+    plt.savefig("output/my_plot.png")
+    # saves to: output/my_plot.png  (as normal)
+    # saves to: ~/graph_backups/my_plot.png  (backup)
+```
+
+- The backup directory is created automatically if it does not exist.
+- Backup uses the same format and options as the original `savefig` call.
+- If `GRAPH_BACKUP` is not set, behaviour is unchanged.
+- Backups are only made when the destination is a file path; passing a file object skips the backup.
+
+### Color Accessors
+
+```python
+from oxford_colors import hex, rgb, cmyk, pantone, as_rgb_norm
+
+hex("oxford_blue")        # -> '#002147'
+rgb("oxford_blue")        # -> (0, 33, 71)
+cmyk("oxford_blue")       # -> (100, 87, 42, 51)
+pantone("oxford_blue")    # -> 'Pantone 282'
+as_rgb_norm("oxford_blue")  # -> (0.0, 0.129, 0.278)  (normalized 0..1 for matplotlib)
+```
+
+### Color Discovery
+
+```python
+from oxford_colors import get_names, OXFORD_COLORS, COLORS_BY_GROUP
+
+# All color keys (sorted)
+get_names()
+
+# Colors in a specific group: 'primary', 'secondary', 'neutrals', 'metallic'
+get_names("secondary")
+
+# Full Color objects (with .name, .hex, .rgb, .cmyk, .pantone attributes)
+OXFORD_COLORS["oxford_blue"].name     # -> 'Oxford blue'
+OXFORD_COLORS["oxford_blue"].pantone  # -> 'Pantone 282'
+
+# Colors grouped by category
+COLORS_BY_GROUP["primary"]   # -> ['oxford_blue']
+COLORS_BY_GROUP["metallic"]  # -> ['oxford_gold', 'oxford_silver']
+```
+
+### Matplotlib Helpers
+
+```python
+from oxford_colors import mpl_palette, mpl_cycler, set_plt_colors, DEFAULT_PALETTE
+import matplotlib.pyplot as plt
+
+# List of hex strings for a set of colors
+mpl_palette(["oxford_blue", "oxford_pink", "oxford_green"])
+
+# Default palette (all colors ordered by "Oxford-ness")
+DEFAULT_PALETTE
+
+# matplotlib cycler object
+plt.rcParams['axes.prop_cycle'] = mpl_cycler(["oxford_blue", "oxford_pink"])
+
+# Convenience: set colors on an existing plt instance
+set_plt_colors(plt, ["oxford_blue", "oxford_pink", "oxford_green"])
+```
 
 ## Usage Examples
 
@@ -108,20 +239,6 @@ with oxford_style():
     plt.show()
 ```
 
-### Custom Color Selection
-
-```python
-from oxford_colors import oxford_style
-
-# Use specific Oxford colors
-with oxford_style(colors=["oxford_blue", "oxford_pink", "oxford_green"]):
-    fig, ax = plt.subplots()
-    ax.plot([1, 2, 3], [1, 4, 9])
-    ax.plot([1, 2, 3], [1, 2, 3])
-    ax.plot([1, 2, 3], [4, 5, 6])
-    plt.show()
-```
-
 ### Bar Chart
 
 ```python
@@ -130,9 +247,7 @@ from oxford_colors import oxford_style
 
 with oxford_style():
     fig, ax = plt.subplots()
-    categories = ['A', 'B', 'C', 'D']
-    values = [23, 45, 56, 78]
-    ax.bar(categories, values)
+    ax.bar(['A', 'B', 'C', 'D'], [23, 45, 56, 78])
     plt.show()
 ```
 
@@ -145,9 +260,7 @@ from oxford_colors import oxford_style
 
 with oxford_style():
     fig, ax = plt.subplots()
-    x = np.random.randn(50)
-    y = np.random.randn(50)
-    ax.scatter(x, y, alpha=0.7)
+    ax.scatter(np.random.randn(50), np.random.randn(50), alpha=0.7)
     plt.show()
 ```
 
@@ -160,68 +273,40 @@ from oxford_colors import oxford_style
 
 with oxford_style():
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 8))
-    
-    # Line plot
+
     x = np.linspace(0, 10, 100)
     ax1.plot(x, np.sin(x))
     ax1.set_title('Sine Wave')
-    
-    # Scatter plot
+
     ax2.scatter(np.random.randn(50), np.random.randn(50))
     ax2.set_title('Scatter Plot')
-    
-    # Bar chart
+
     ax3.bar(['A', 'B', 'C'], [10, 20, 15])
     ax3.set_title('Bar Chart')
-    
-    # Histogram
+
     ax4.hist(np.random.normal(0, 1, 1000), bins=30)
     ax4.set_title('Histogram')
-    
+
     plt.tight_layout()
     plt.show()
 ```
 
-## Advanced Usage
-
-### Accessing Individual Colors
+### Setting Colors Globally
 
 ```python
-from oxford_colors import hex, rgb, OXFORD_COLORS
-
-# Get hex color
-blue_hex = hex("oxford_blue")  # '#002147'
-
-# Get RGB tuple
-blue_rgb = rgb("oxford_blue")  # (0, 33, 71)
-
-# Access color object directly
-blue_color = OXFORD_COLORS["oxford_blue"]
-print(blue_color.name)  # "Oxford blue"
-print(blue_color.pantone)  # "Pantone 282"
-```
-
-### Creating Custom Palettes
-
-```python
-from oxford_colors import mpl_palette
-
-# Create a palette with specific colors
-custom_palette = mpl_palette([
-    "oxford_blue", 
-    "oxford_pink", 
-    "oxford_green",
-    "oxford_orange"
-])
-
-# Use with matplotlib
 import matplotlib.pyplot as plt
-plt.rcParams['axes.prop_cycle'] = plt.cycler(color=custom_palette)
+from oxford_colors import set_plt_colors
+
+set_plt_colors(plt)  # applies default Oxford palette globally
+
+fig, ax = plt.subplots()
+ax.plot([1, 2, 3], [1, 4, 9])
+plt.show()
 ```
 
 ## Development
 
-### Installation for Development
+### Setup
 
 ```bash
 git clone https://github.com/HakamAtassi/oxford_colors.git
@@ -249,15 +334,6 @@ The `examples/gallery.py` script generates a comprehensive gallery of plots usin
 python -m oxford_colors.examples.gallery
 ```
 
-This will create multiple PNG files demonstrating:
-- Line plots (with and without markers)
-- Scatter plots (single and colored)
-- Bar charts (vertical and horizontal)
-- Histograms (single and multiple)
-- Subplots
-- Stacked bar charts
-- Custom color selections
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -276,10 +352,18 @@ The colors in this library are based on Oxford University's official brand guide
 
 ## Changelog
 
+### Version 1.2.0
+- `oxford_style` context manager now automatically backs up plots to the directory set in the `GRAPH_BACKUP` environment variable when `plt.savefig()` is called
+
+### Version 1.1.0
+- Extended secondary palette (added `oxford_cool_grey`, `oxford_sky_blue`, `oxford_sage_green`, `oxford_viridian`, `oxford_royal_blue`, `oxford_aqua`, `oxford_vivid_green`, `oxford_lime_green`, `oxford_cerulean_blue`, `oxford_yellow`)
+- Added `cmyk`, `pantone`, `as_rgb_norm`, `get_names`, `mpl_cycler`, `set_plt_colors` helpers
+- Added `COLORS_BY_GROUP` for group-based color discovery
+- `oxford_style` now supports subscript color lookup
+
 ### Version 1.0.0
 - Initial release
-- Complete Oxford color palette
+- Core Oxford color palette
 - Context manager for temporary styling
 - Comprehensive test suite
-- Example gallery
 - PyPI distribution ready

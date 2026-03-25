@@ -110,6 +110,27 @@ oxford_style["oxford_blue"]   # -> '#002147'
 oxford_style["oxford_pink"]   # -> '#E6007E'
 ```
 
+#### Automatic Graph Backups
+
+If the `GRAPH_BACKUP` environment variable is set, any `plt.savefig()` call inside the context manager will automatically save a backup copy to that directory in addition to the original destination.
+
+```bash
+export GRAPH_BACKUP=~/graph_backups
+```
+
+```python
+with oxford_style():
+    plt.plot([1, 2, 3], [1, 4, 9])
+    plt.savefig("output/my_plot.png")
+    # saves to: output/my_plot.png  (as normal)
+    # saves to: ~/graph_backups/my_plot.png  (backup)
+```
+
+- The backup directory is created automatically if it does not exist.
+- Backup uses the same format and options as the original `savefig` call.
+- If `GRAPH_BACKUP` is not set, behaviour is unchanged.
+- Backups are only made when the destination is a file path; passing a file object skips the backup.
+
 ### Color Accessors
 
 ```python
@@ -289,6 +310,9 @@ The colors in this library are based on Oxford University's official brand guide
 - Hex codes for web applications
 
 ## Changelog
+
+### Version 1.2.0
+- `oxford_style` context manager now automatically backs up plots to the directory set in the `GRAPH_BACKUP` environment variable when `plt.savefig()` is called
 
 ### Version 1.1.0
 - Extended secondary palette (added `oxford_cool_grey`, `oxford_sky_blue`, `oxford_sage_green`, `oxford_viridian`, `oxford_royal_blue`, `oxford_aqua`, `oxford_vivid_green`, `oxford_lime_green`, `oxford_cerulean_blue`, `oxford_yellow`)
