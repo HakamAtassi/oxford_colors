@@ -1,8 +1,7 @@
 Metadata-Version: 2.4
 Name: oxford_colors
-Version: 1.0.0
+Version: 1.1.0
 Summary: Oxford University color palette for matplotlib
-Author: Hakam Atassi
 Author-email: Hakam Atassi <hakam.atassi@example.com>
 Maintainer-email: Hakam Atassi <hakam.atassi@example.com>
 License-Expression: MIT
