@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Optional, Union
 import inspect
 import pathlib
+import pickle
 import warnings
 import zipfile
 import matplotlib.pyplot as plt
@@ -21,13 +22,14 @@ __all__ = ["containerize"]
 def containerize(
     output_path: Optional[Union[str, pathlib.Path]] = None,
     files: Optional[list] = None,
+    variables: Optional[list] = None,
 ):
     """
     Context manager that zips up:
-      - the current .py / .ipynb source file
-      - all user variables at the time the block exits
-      - any figure(s) saved via plt.savefig() inside the block
+      - the calling .py source file
+      - any figures saved via plt.savefig() inside the block
       - any extra files passed via ``files``
+      - any explicitly passed ``variables``
 
     Parameters
     ----------
@@ -36,10 +38,12 @@ def containerize(
         timestamp-based name in the current directory.
     files : list, optional
         Extra files to include in the zip.
+    variables : list, optional
+        Variables to store, e.g. ``[x, y]``.
 
     Example
     -------
-    with containerize("my_plot"):
+    with containerize("my_plot", variables=[x, y]):
         plt.plot(x, y)
         plt.savefig("my_plot.png", dpi=300)
     """
@@ -69,76 +73,63 @@ def containerize(
         yield
     finally:
         plt.savefig = _orig_savefig
-        _build_zip(base_path, _saved_figures, files or [])
+        _build_zip(base_path, _saved_figures, files or [], variables or {})
 
 
 # ---------------------------------------------------------------------------
 
-def _user_frame():
-    """Walk the call stack to find the first frame outside this module."""
-    frame = inspect.currentframe()
-    while frame is not None:
-        fname = frame.f_code.co_filename
+def _caller_source() -> Optional[pathlib.Path]:
+    """Walk the call stack to find the .py or .ipynb source file."""
+    for frame_info in inspect.stack():
+        frame = frame_info.frame
+        fname = frame_info.filename
+
         if (
-            not fname.endswith("graph_container.py")
-            and "site-packages" not in fname
-            and "contextlib" not in fname
+            fname.endswith("graph_container.py")
+            or "site-packages" in fname
+            or "contextlib" in fname
         ):
-            return frame
-        frame = frame.f_back
-    return None
+            continue
 
+        # VS Code Jupyter stores the notebook path here
+        vsc = (frame.f_globals or {}).get("__vsc_ipynb_file__")
+        if vsc:
+            p = pathlib.Path(vsc)
+            if p.exists():
+                return p
 
-def _source_file(frame) -> Optional[pathlib.Path]:
-    """Return the .py or .ipynb file being executed, or None."""
-    # VS Code Jupyter stores the notebook path here
-    vsc = (frame.f_globals or {}).get("__vsc_ipynb_file__")
-    if vsc:
-        p = pathlib.Path(vsc)
-        if p.exists():
+        p = pathlib.Path(fname)
+        if p.suffix == ".py" and p.exists():
             return p
 
-    p = pathlib.Path(frame.f_code.co_filename)
-    if p.suffix == ".py" and p.exists():
-        return p
-
     return None
 
 
-def _write_vars(frame, path: pathlib.Path):
-    """Write all user-defined variables to a Python file using repr()."""
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(f"# Variables captured: {datetime.now().isoformat()}\n\n")
-        for name, value in frame.f_locals.items():
-            if name.startswith("_"):
-                continue
-            if inspect.ismodule(value) or inspect.isfunction(value) or inspect.isclass(value):
-                continue
-            try:
-                f.write(f"{name} = {repr(value)}\n")
-            except Exception:
-                continue
+def _pickle_vars(variables: list, path: pathlib.Path):
+    """Pickle explicitly passed variables to a .pkl file."""
+    with open(path, "wb") as f:
+        pickle.dump(variables, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def _build_zip(base_path: pathlib.Path, figures: list, extra_files: list):
-    frame = _user_frame()
+def _build_zip(base_path: pathlib.Path, figures: list, extra_files: list, variables: list):
     stem = base_path.stem
     parent = base_path.parent
 
-    vars_path = parent / f"{stem}_vars.py"
-    if frame:
-        _write_vars(frame, vars_path)
+    source = _caller_source()
 
-    source = _source_file(frame) if frame else None
+    vars_path = None
+    if variables:
+        vars_path = parent / f"{stem}_vars.pkl"
+        _pickle_vars(variables, vars_path)
 
     zip_path = parent / f"{stem}.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         if source and source.exists():
             zf.write(source, source.name)
             print(f"  + {source.name}")
-        if vars_path.exists():
+        if vars_path and vars_path.exists():
             zf.write(vars_path, vars_path.name)
-            print(f"  + {vars_path.name}")
+            print(f"  + {vars_path.name}  (pickle)")
         for fig in figures:
             if fig.exists():
                 zf.write(fig, fig.name)
@@ -155,7 +146,8 @@ def _build_zip(base_path: pathlib.Path, figures: list, extra_files: list):
 
     print(f"Container: {zip_path}")
 
-    try:
-        vars_path.unlink()
-    except Exception:
-        pass
+    if vars_path:
+        try:
+            vars_path.unlink()
+        except Exception:
+            pass

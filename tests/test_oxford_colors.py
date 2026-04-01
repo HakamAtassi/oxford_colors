@@ -1,10 +1,14 @@
 """
 Test suite for oxford_colors package.
 """
+import pickle
+import pathlib
 import pytest
+import zipfile
 import matplotlib.pyplot as plt
 import numpy as np
 from oxford_colors import oxford_style, mpl_palette, OXFORD_COLORS, DEFAULT_PALETTE
+from oxford_colors.graph_container import containerize
 
 # Sample data for testing
 x = np.linspace(0, 10, 100)
@@ -145,6 +149,81 @@ def test_oxford_style_with_subplots():
         assert bars[0].get_facecolor() == plt.matplotlib.colors.to_rgba(DEFAULT_PALETTE[0])
         
         plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# containerize() tests
+# ---------------------------------------------------------------------------
+
+def test_containerize_basic(tmp_path):
+    """Zip is created with source file and figure; no vars file when none passed."""
+    out = tmp_path / "test_plot"
+    fig_path = tmp_path / "test_plot.png"
+
+    with containerize(out):
+        plt.figure()
+        plt.plot([1, 2], [3, 4])
+        plt.savefig(fig_path)
+        plt.close()
+
+    zip_path = tmp_path / "test_plot.zip"
+    assert zip_path.exists()
+
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+    assert "test_plot.png" in names
+    assert not any(n.endswith(".pkl") for n in names)
+
+
+def test_containerize_variables(tmp_path):
+    """Variables list is pickled and included in the zip."""
+    out = tmp_path / "test_vars"
+    fig_path = tmp_path / "test_vars.png"
+    x = [1, 2, 3]
+    y = [4, 5, 6]
+
+    with containerize(out, variables=[x, y]):
+        plt.figure()
+        plt.plot(x, y)
+        plt.savefig(fig_path)
+        plt.close()
+
+    zip_path = tmp_path / "test_vars.zip"
+    assert zip_path.exists()
+
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+        assert "test_vars_vars.pkl" in names
+        data = pickle.loads(zf.read("test_vars_vars.pkl"))
+
+    assert data == [x, y]
+
+
+def test_containerize_extra_files(tmp_path):
+    """Extra files passed via files= are included in the zip."""
+    out = tmp_path / "test_files"
+    fig_path = tmp_path / "test_files.png"
+    extra = tmp_path / "data.csv"
+    extra.write_text("a,b\n1,2\n")
+
+    with containerize(out, files=[extra]):
+        plt.figure()
+        plt.plot([1], [1])
+        plt.savefig(fig_path)
+        plt.close()
+
+    zip_path = tmp_path / "test_files.zip"
+    with zipfile.ZipFile(zip_path) as zf:
+        assert "data.csv" in zf.namelist()
+
+
+def test_containerize_no_output_path_warns(tmp_path, monkeypatch):
+    """Omitting output_path emits a UserWarning."""
+    monkeypatch.chdir(tmp_path)
+    with pytest.warns(UserWarning, match="containerize\\(\\) called without output_path"):
+        with containerize():
+            plt.figure()
+            plt.close()
 
 
 if __name__ == "__main__":

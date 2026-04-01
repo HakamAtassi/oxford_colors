@@ -119,8 +119,8 @@ The `containerize()` context manager bundles everything needed to revisit a grap
 
 | File | Description |
 |---|---|
-| `{source}.py` / `{source}.ipynb` | The script or notebook that created the graph |
-| `{name}_vars.py` | All variables in scope at the time the block exits |
+| `{source}.py` / `{source}.ipynb` | The script or notebook that created the graph (auto-detected) |
+| `{name}_vars.pkl` | Explicitly passed variables (pickled) |
 | `{figure}` | The figure file(s) saved via `plt.savefig()` |
 | *(extra files)* | Anything passed via `files=` |
 
@@ -131,12 +131,12 @@ from oxford_colors.graph_container import containerize
 x = np.linspace(0, 10, 100)
 y = np.sin(x)
 
-with oxford_style(), containerize("my_analysis"):
+with oxford_style(), containerize("my_analysis", variables=[x, y]):
     plt.plot(x, y)
     plt.savefig("my_analysis.png", dpi=300, bbox_inches="tight")
 ```
 
-This creates `my_analysis.zip` containing your notebook/script, `my_analysis_vars.py` with `x` and `y`, and `my_analysis.png`.
+This creates `my_analysis.zip` containing your notebook/script, `my_analysis_vars.pkl` with `x` and `y`, and `my_analysis.png`.
 
 **With extra files:**
 
@@ -144,6 +144,15 @@ This creates `my_analysis.zip` containing your notebook/script, `my_analysis_var
 with oxford_style(), containerize("my_analysis", files=["data.csv", "notes.txt"]):
     plt.plot(x, y)
     plt.savefig("my_analysis.png", dpi=300)
+```
+
+**Loading pickled variables back:**
+
+```python
+import pickle
+
+with open("my_analysis_vars.pkl", "rb") as f:
+    x, y = pickle.load(f)
 ```
 
 **Auto-named output** (timestamp-based, saved in the current directory):
@@ -336,7 +345,11 @@ The colors in this library are based on Oxford University's official brand guide
 
 ## Changelog
 
-### Version 1.5.0
+### Version 2.0.1
+- `containerize()` now takes an explicit `variables` list instead of auto-capturing all locals — pass only what you need, e.g. `variables=[x, y, df]`
+- Variables are now stored as a pickle (`.pkl`) instead of a text repr file — handles arbitrary Python objects correctly
+
+### Version 2.0.0
 - `oxford_style` no longer monkey-patches `plt.savefig`; the `GRAPH_BACKUP` environment variable is no longer respected — use `containerize()` for figure bundling instead
 - `containerize()` now emits a `UserWarning` when called without `output_path` so the auto-generated filename is visible
 
