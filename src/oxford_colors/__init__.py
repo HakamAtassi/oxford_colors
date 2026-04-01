@@ -13,6 +13,9 @@ from .oxford_colors import (
     set_plt_colors,
     DEFAULT_PALETTE
 )
+from .graph_container import (
+    containerize,
+)
 
 __all__ = [
     'OXFORD_COLORS',
@@ -27,5 +30,6 @@ __all__ = [
     'mpl_cycler',
     'oxford_style',
     'set_plt_colors',
-    'DEFAULT_PALETTE'
+    'DEFAULT_PALETTE',
+    'containerize',
 ]

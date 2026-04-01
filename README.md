@@ -27,6 +27,7 @@ with oxford_style():
 - **Official Oxford Colors**: Complete palette including primary, secondary, neutral, and metallic colors
 - **Context Manager**: Temporary color styling that automatically restores previous rcParams
 - **Custom Color Selection**: Choose specific colors from the palette
+- **Graph Container**: Extract code, variables, and figures into compressed, shareable containers
 - **Multiple Plot Types**: Works with line plots, bar charts, scatter plots, histograms, and more
 - **Matplotlib Integration**: Seamless integration with matplotlib's color cycle
 - **Color Metadata**: Access hex, RGB, CMYK, and Pantone values for every color
@@ -110,26 +111,50 @@ oxford_style["oxford_blue"]   # -> '#002147'
 oxford_style["oxford_pink"]   # -> '#E6007E'
 ```
 
-#### Automatic Graph Backups
+### Graph Container Feature
 
-If the `GRAPH_BACKUP` environment variable is set, any `plt.savefig()` call inside the context manager will automatically save a backup copy to that directory in addition to the original destination.
+The `containerize()` context manager bundles everything needed to revisit a graph into a single zip file. Call `plt.savefig()` inside the block as you normally would — the container picks it up automatically.
 
-```bash
-export GRAPH_BACKUP=~/graph_backups
-```
+**Zip contents:**
+
+| File | Description |
+|---|---|
+| `{source}.py` / `{source}.ipynb` | The script or notebook that created the graph |
+| `{name}_vars.py` | All variables in scope at the time the block exits |
+| `{figure}` | The figure file(s) saved via `plt.savefig()` |
+| *(extra files)* | Anything passed via `files=` |
 
 ```python
-with oxford_style():
-    plt.plot([1, 2, 3], [1, 4, 9])
-    plt.savefig("output/my_plot.png")
-    # saves to: output/my_plot.png  (as normal)
-    # saves to: ~/graph_backups/my_plot.png  (backup)
+from oxford_colors import oxford_style
+from oxford_colors.graph_container import containerize
+
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+with oxford_style(), containerize("my_analysis"):
+    plt.plot(x, y)
+    plt.savefig("my_analysis.png", dpi=300, bbox_inches="tight")
 ```
 
-- The backup directory is created automatically if it does not exist.
-- Backup uses the same format and options as the original `savefig` call.
-- If `GRAPH_BACKUP` is not set, behaviour is unchanged.
-- Backups are only made when the destination is a file path; passing a file object skips the backup.
+This creates `my_analysis.zip` containing your notebook/script, `my_analysis_vars.py` with `x` and `y`, and `my_analysis.png`.
+
+**With extra files:**
+
+```python
+with oxford_style(), containerize("my_analysis", files=["data.csv", "notes.txt"]):
+    plt.plot(x, y)
+    plt.savefig("my_analysis.png", dpi=300)
+```
+
+**Auto-named output** (timestamp-based, saved in the current directory):
+
+```python
+with oxford_style(), containerize():   # UserWarning: output will be saved as 'graph_<timestamp>.zip'
+    plt.plot(x, y)
+    plt.savefig("plot.png", dpi=300)
+```
+
+Omitting `output_path` emits a `UserWarning` so the auto-generated filename is visible. Suppress it with `warnings.filterwarnings` if needed.
 
 ### Color Accessors
 
@@ -310,6 +335,19 @@ The colors in this library are based on Oxford University's official brand guide
 - Hex codes for web applications
 
 ## Changelog
+
+### Version 1.5.0
+- `oxford_style` no longer monkey-patches `plt.savefig`; the `GRAPH_BACKUP` environment variable is no longer respected — use `containerize()` for figure bundling instead
+- `containerize()` now emits a `UserWarning` when called without `output_path` so the auto-generated filename is visible
+
+### Version 1.4.0
+- Rewrote `containerize()`: bundles the original source file (.py or .ipynb), all in-scope variables, and the figure(s) saved via `plt.savefig()` into a single zip
+- Source file auto-detected (VS Code Jupyter, plain `.py`, or `JPY_SESSION_NAME`)
+- Variables written via `repr()` — no JSON serialisation
+- Optional `files=` parameter to include additional files in the zip
+
+### Version 1.3.0
+- Added `containerize()` context manager
 
 ### Version 1.2.0
 - `oxford_style` context manager now automatically backs up plots to the directory set in the `GRAPH_BACKUP` environment variable when `plt.savefig()` is called
